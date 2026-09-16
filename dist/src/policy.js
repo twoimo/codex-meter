@@ -128,6 +128,9 @@ export function decide(input) {
     if (pull && config.skipLabel && pull.labels.includes(config.skipLabel)) {
         return finish(false, 'label-skip', `Label "${config.skipLabel}" is present.`);
     }
+    if (pull && config.requireLabel && !pull.labels.includes(config.requireLabel)) {
+        return finish(false, 'label-missing', `Opt-in mode: label "${config.requireLabel}" is required before a review is paid for.`);
+    }
     if (pull?.isFork && !config.allowForkPrs) {
         return finish(false, 'fork-pr', 'Pull request comes from a fork: secrets are not available and untrusted code must not spend your key. Set allowForkPrs to override.');
     }

@@ -208,3 +208,42 @@ test('metadata gates keep their documented precedence', () => {
     'the fork gate still wins once bot gating is disabled',
   );
 });
+
+test('opt-in mode reviews only labelled pull requests', () => {
+  const config = structuredClone(DEFAULT_CONFIG);
+  config.requireLabel = 'review-with-codex';
+
+  const missing = decide(input({ config }));
+  assert.equal(missing.decision.code, 'label-missing');
+  assert.equal(missing.decision.run, false);
+  assert.match(missing.decision.detail, /review-with-codex/);
+
+  const labelled = decide(
+    input({
+      config,
+      pull: { number: 7, title: 'test', draft: false, author: 'contributor', labels: ['review-with-codex'], isFork: false },
+    }),
+  );
+  assert.equal(labelled.decision.code, 'run');
+
+  // The skip label still wins over the opt-in label, and neither comment is posted.
+  const both = decide(
+    input({
+      config,
+      pull: {
+        number: 7,
+        title: 'test',
+        draft: false,
+        author: 'contributor',
+        labels: ['review-with-codex', 'skip-codex-meter'],
+        isFork: false,
+      },
+    }),
+  );
+  assert.equal(both.decision.code, 'label-skip');
+});
+
+test('opt-in mode is off by default', () => {
+  assert.equal(DEFAULT_CONFIG.requireLabel, null);
+  assert.equal(decide(input()).decision.code, 'run');
+});
