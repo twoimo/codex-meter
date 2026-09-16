@@ -1,5 +1,9 @@
 # codex-meter
 
+[![ci](https://github.com/twoimo/codex-meter/actions/workflows/ci.yml/badge.svg)](https://github.com/twoimo/codex-meter/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![node](https://img.shields.io/badge/node-20%20%7C%2022-brightgreen)
+
 Spend-aware Codex automation for open source maintainers: policy gates, monthly budget enforcement, an audit ledger, and PR spend reports.
 
 Codex review is genuinely useful and genuinely expensive. A single review of a 23-line diff measured **116,593 input / 4,642 output tokens** (~$0.13 on `gpt-5.4`) because the agent reads files and runs read-only commands across several turns. Codex for Open Source grants, API credits and Pro allowances all run out, and most review bots give you no idea how fast.
@@ -158,6 +162,10 @@ Every option also has a CLI flag (`--budget-tokens`, `--fail-on`, `--state`, `--
 - Prices and token estimates drift as models change; re-check them with `report` after a month of real runs.
 
 `codex-meter` is complementary to [`openai/codex-action`](https://github.com/openai/codex-action), which handles installing Codex, proxying Responses API calls and sandbox strategy. Use that action when you want a plain Codex step; use this one when you need the spend to be bounded and auditable.
+
+## Status
+
+Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting are covered by 56 tests, CI runs on Node 20 and 22, and CI fails if the committed `dist/` drifts from a fresh build. The review path itself is verified against a recorded Codex session rather than a live call, so the suite stays free and reproducible. `ROADMAP` ideas live at the end of [docs/design.md](docs/design.md).
 
 ## Development
 
