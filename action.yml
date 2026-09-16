@@ -1,5 +1,5 @@
 name: codex-meter
-description: Spend-aware Codex reviews for pull requests: policy gates, monthly budget enforcement, an audit ledger, and a spend report.
+description: "Spend-aware Codex reviews for pull requests: policy gates, monthly budget enforcement, an audit ledger, and a spend report."
 author: Yeonwoo Choi
 branding:
   icon: activity
@@ -12,6 +12,12 @@ inputs:
     default: review
   api-key:
     description: 'OpenAI API key used for the Codex run. Store it as a repository secret and pass secrets.OPENAI_API_KEY.'
+    required: false
+  github-token:
+    description: 'Token used to post or update the review comment. Defaults to the workflow token, which needs pull-requests: write.'
+    required: false
+  run-tokens:
+    description: 'Token ceiling for a single review. Raise it for repositories with large diffs.'
     required: false
   codex-version:
     description: 'Version of @openai/codex to install'
@@ -88,6 +94,7 @@ runs:
       # environment, so commands Codex runs cannot read it.
       env:
         CODEX_API_KEY: ${{ inputs.api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
       run: |
         set -o pipefail
         args=("${{ inputs.mode }}")
@@ -95,6 +102,7 @@ runs:
         [ -n "${{ inputs.model }}" ] && args+=(--model "${{ inputs.model }}")
         [ -n "${{ inputs.budget-tokens }}" ] && args+=(--budget-tokens "${{ inputs.budget-tokens }}")
         [ -n "${{ inputs.budget-usd }}" ] && args+=(--budget-usd "${{ inputs.budget-usd }}")
+        [ -n "${{ inputs.run-tokens }}" ] && args+=(--run-tokens "${{ inputs.run-tokens }}")
         [ -n "${{ inputs.max-diff-lines }}" ] && args+=(--max-changed-lines "${{ inputs.max-diff-lines }}")
         [ -n "${{ inputs.state }}" ] && args+=(--state "${{ inputs.state }}")
         [ -n "${{ inputs.comment }}" ] && args+=(--comment "${{ inputs.comment }}")

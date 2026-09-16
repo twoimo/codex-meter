@@ -64,6 +64,7 @@ jobs:
         with:
           api-key: ${{ secrets.OPENAI_API_KEY }}
           budget-tokens: '1200000'   # about ten measured reviews a month
+          run-tokens: '900000'       # per-review ceiling, raise it for large diffs
           state: branch              # keep the monthly budget across runs
 ```
 
@@ -148,7 +149,7 @@ Every option also has a CLI flag (`--budget-tokens`, `--fail-on`, `--state`, `--
 - The API key is stored once through `codex login --with-api-key` inside a **throwaway `CODEX_HOME`**, and removed from the environment of the Codex process. Commands Codex runs in your checkout therefore cannot read it. See [docs/security.md](docs/security.md).
 - Fork pull requests are skipped by default. `allowForkPrs` exists, but the secret still is not available to forks, so enabling it only makes sense with a separate low-privilege key.
 - Codex runs with `--ephemeral` (no session files) and the CLI's read-only sandbox default. `codex-meter` never edits your repository, never pushes commits and never resolves comments.
-- The action needs `pull-requests: write` for the comment and `contents: write` only when `state: branch`.
+- The action needs `pull-requests: write` for the comment and `contents: write` only when `state: branch`. Pass `github-token` if you want a token other than the workflow token.
 
 ## What this does not do
 

@@ -46,9 +46,20 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.resolve(HERE, '..', '..', 'schemas', 'findings.schema.json');
 
 const SKIP_CODES_WORTH_COMMENTING = new Set(['budget-exhausted', 'too-large', 'fork-pr']);
-
 function log(message: string): void {
   process.stderr.write(`${message}\n`);
+}
+
+/**
+ * A silently dropped comment looks identical to a review that was never run, so
+ * always report whether the comment was actually created, updated or refused.
+ */
+function logCommentResult(result: 'created' | 'updated' | 'failed'): void {
+  if (result === 'failed') {
+    log('warning: the pull request comment could not be posted or updated (check pull-requests: write permission and the token)');
+    return;
+  }
+  log(`comment: ${result}`);
 }
 
 function shortSha(sha: string | null): string {
@@ -248,12 +259,18 @@ async function commandReview(options: CliOptions): Promise<number> {
   log(`codex-meter ${TOOL_VERSION}: ${outcome.decision.code} — ${outcome.decision.detail}`);
   log(`diff: ${stats.fileCount} files, ${stats.changedLines} changed lines (base ${base})`);
   log(`ledger: ${store.describe()}`);
+  log(
+    `github: repo=${repoSlug ?? 'none'} pull=${pull?.number ?? explicitPr ?? 'none'} comment=${config.comment} token=${env.token ? 'present' : 'missing'}`,
+  );
+  if (config.comment === 'upsert' && (!ctx || !pull?.number)) {
+    log('warning: no GitHub context (token plus GITHUB_REPOSITORY, or a pull_request event), so no comment will be posted');
+  }
   for (const note of outcome.decision.notes) log(`note: ${note}`);
 
   if (!outcome.decision.run || config.dryRun) {
     if (config.dryRun) log('dry run: no Codex run, no comment, no ledger write');
     if (outcome.decision.run === false && SKIP_CODES_WORTH_COMMENTING.has(outcome.decision.code) && ctx && pull?.number && config.comment === 'upsert' && !config.dryRun) {
-      await upsertComment(
+      const posted = await upsertComment(
         ctx,
         pull.number,
         renderSkipComment({
@@ -263,6 +280,7 @@ async function commandReview(options: CliOptions): Promise<number> {
           spend: spendLine(EMPTY_USAGE, null, outcome.model),
         }),
       );
+      logCommentResult(posted);
     }
     if (!config.dryRun && outcome.decision.run === false) {
       const record: LedgerRecord = {
@@ -371,28 +389,30 @@ async function commandReview(options: CliOptions): Promise<number> {
   }
 
   if (ctx && pull?.number && config.comment === 'upsert') {
-    if (result.errorKind === 'none' && result.review) {
-      await upsertComment(
-        ctx,
-        pull.number,
-        renderReviewComment({
-          review: result.review,
-          spend: spendLine(result.usage, cost, result.model ?? outcome.model),
-          meta: { ...meta, durationMs: result.durationMs, droppedFindings: 0 },
-        }),
-      );
-    } else {
-      await upsertComment(
-        ctx,
-        pull.number,
-        renderErrorComment({
-          detail: result.failureReason ?? result.errorKind,
-          stderrTail: result.stderrTail,
-          spend: spendLine(result.usage, cost, result.model ?? outcome.model),
-          meta: { ...meta, durationMs: result.durationMs },
-        }),
-      );
-    }
+    const posted =
+      result.errorKind === 'none' && result.review
+        ? await upsertComment(
+            ctx,
+            pull.number,
+            renderReviewComment({
+              review: result.review,
+              spend: spendLine(result.usage, cost, result.model ?? outcome.model),
+              meta: { ...meta, durationMs: result.durationMs, droppedFindings: 0 },
+            }),
+          )
+        : await upsertComment(
+            ctx,
+            pull.number,
+            renderErrorComment({
+              detail: result.failureReason ?? result.errorKind,
+              stderrTail: result.stderrTail,
+              spend: spendLine(result.usage, cost, result.model ?? outcome.model),
+              meta: { ...meta, durationMs: result.durationMs },
+            }),
+          );
+    logCommentResult(posted);
+  } else if (ctx && pull?.number && config.comment === 'off') {
+    log('comment: skipped (comment mode is off)');
   }
 
   setOutput('decision', 'run');
