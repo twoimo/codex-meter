@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { breakDown, classifyPath, decide, estimateTokens } from '../src/policy.js';
+import { breakDown, classifyPath, decide, estimateTokens, isBotAuthor } from '../src/policy.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 function stats(entries) {
     const files = entries.map(([path, added, deleted]) => ({
@@ -77,6 +77,28 @@ test('minChangedLines can gate trivial changes', () => {
     config.minChangedLines = 10;
     assert.equal(decide(input({ config, stats: stats([['src/a.ts', 2, 0]]) })).decision.code, 'too-small');
 });
+test('automation accounts are recognised and skipped without spending', () => {
+    assert.equal(isBotAuthor('dependabot[bot]'), true);
+    assert.equal(isBotAuthor('renovate[bot]'), true);
+    assert.equal(isBotAuthor('github-actions[bot]'), true);
+    assert.equal(isBotAuthor('renovate'), true);
+    assert.equal(isBotAuthor('app/dependabot'), true);
+    assert.equal(isBotAuthor('Robot-Fan'), false);
+    assert.equal(isBotAuthor('some-bot'), false, 'human handles can end in -bot');
+    assert.equal(isBotAuthor('twoimo'), false);
+    assert.equal(isBotAuthor('app/'), false);
+    assert.equal(isBotAuthor(null), false);
+    const skipped = decide(input({ pull: { number: 9, title: null, draft: false, author: 'dependabot[bot]', labels: [], isFork: false } }));
+    assert.equal(skipped.decision.code, 'bot-author');
+    assert.equal(skipped.decision.run, false);
+    const optOut = structuredClone(DEFAULT_CONFIG);
+    optOut.skipBotAuthors = false;
+    const reviewed = decide(input({
+        config: optOut,
+        pull: { number: 9, title: null, draft: false, author: 'dependabot[bot]', labels: [], isFork: false },
+    }));
+    assert.equal(reviewed.decision.code, 'run');
+});
 test('an already metered head commit is not reviewed twice', () => {
     assert.equal(decide(input({ alreadyReviewed: true })).decision.code, 'already-reviewed');
 });
@@ -116,5 +138,23 @@ test('approximate price matches are reported as a note', () => {
     assert.equal(outcome.decision.run, true);
     assert.equal(outcome.estimate.priceApproximate, true);
     assert.ok(outcome.decision.notes.some((note) => note.includes('gpt-5.4')));
+});
+test('metadata gates keep their documented precedence', () => {
+    const stacking = {
+        number: 3,
+        title: null,
+        draft: true,
+        author: 'dependabot[bot]',
+        labels: ['skip-codex-meter'],
+        isFork: true,
+    };
+    assert.equal(decide(input({ pull: stacking })).decision.code, 'draft');
+    assert.equal(decide(input({ pull: { ...stacking, draft: false } })).decision.code, 'bot-author');
+    assert.equal(decide(input({ pull: { ...stacking, draft: false, author: 'human' } })).decision.code, 'label-skip');
+    assert.equal(decide(input({ pull: { ...stacking, draft: false, author: 'human', labels: [] } })).decision.code, 'fork-pr');
+    const optOut = structuredClone(DEFAULT_CONFIG);
+    optOut.skipBotAuthors = false;
+    assert.equal(decide(input({ config: optOut, pull: { ...stacking, draft: false } })).decision.code, 'label-skip', 'the label gate still wins once bot gating is disabled');
+    assert.equal(decide(input({ config: optOut, pull: { ...stacking, draft: false, labels: [] } })).decision.code, 'fork-pr', 'the fork gate still wins once bot gating is disabled');
 });
 //# sourceMappingURL=policy.test.js.map
