@@ -1,6 +1,7 @@
 # codex-meter
 
 [![ci](https://github.com/twoimo/codex-meter/actions/workflows/ci.yml/badge.svg)](https://github.com/twoimo/codex-meter/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@twoimo/codex-meter.svg)](https://www.npmjs.com/package/@twoimo/codex-meter)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![node](https://img.shields.io/badge/node-20%20%7C%2022-brightgreen)
 
