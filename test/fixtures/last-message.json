@@ -1,0 +1,23 @@
+{
+  "summary": "Replaces the standalone `upload()` function with a `Uploader` class that adds an authorization header and a retry path for network failures. Not safe to merge: the retry path sends an empty, unauthenticated body in an unbounded loop that ignores `maxAttempts`, so any transient failure turns into a hang that uploads nothing.",
+  "risk": "high",
+  "skipReview": false,
+  "findings": [
+    {
+      "severity": "critical",
+      "file": "src/upload.ts",
+      "line": 23,
+      "title": "Retry uploads an empty body because `buffer` is never populated",
+      "detail": "`this.buffer` is declared as `string[]` and reset to `[]` on success, but nothing anywhere in the class ever pushes into it. `this.buffer.join(',')` is therefore always the empty string, so every retry POSTs an empty payload instead of `options.body`. The original request body is dropped on the retry path, which means a flaky network silently uploads no data (or, if the endpoint treats an empty POST as a clear/overwrite, destroys the previous upload). The `body: options.body` on line 16 confirms the intended payload was available and simply was not carried over.",
+      "suggestion": "Retry with the same payload: `body: options.body`. If the intent is genuinely to queue pending items in `buffer`, push `options.body` into it before the first attempt and drain it on success; otherwise delete the `buffer` field entirely."
+    },
+    {
+      "severity": "high",
+      "file": "src/upload.ts",
+      "line": 22,
+      "title": "Unbounded retry loop ignores `maxAttempts` and has no backoff",
+      "detail": "`while (true)` only exits when `response.ok`, so a persistent failure (500, 401, 403, 404) loops forever and `upload()` never settles — the caller hangs indefinitely. `options.maxAttempts` is still part of `UploadOptions` (line 4) but is never read, so callers who set a retry budget get none of it. There is also no delay, jitter, or AbortSignal timeout between attempts, so this becomes a tight hammering loop against the endpoint for the whole failure window.",
+      "suggestion": "Bound the loop with `for (let attempt = 0; attempt < options.maxAttempts; attempt++)`, add exponential backoff with jitter (and a cap) between attempts, use an AbortSignal timeout per attempt, and throw a typed error once the budget is exhausted."
+    }
+  ]
+}

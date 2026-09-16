@@ -1,0 +1,43 @@
+name: codex-meter
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: codex-meter-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Is a Codex key configured?
+        id: gate
+        env:
+          KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "OPENAI_API_KEY is not configured; skipping the metered review." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: codex-meter review
+        if: steps.gate.outputs.present == 'true'
+        uses: ./
+        with:
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          budget-tokens: '600000'
+          state: file
+          fail-on: never

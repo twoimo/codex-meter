@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "codex-meter review output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "risk", "findings", "skipReview"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One or two sentences describing what the change does and whether it is safe to merge."
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Overall merge risk of this change."
+    },
+    "skipReview": {
+      "type": "boolean",
+      "description": "True only when the diff is mechanical and cannot contain a meaningful defect."
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 25,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "file", "line", "title", "detail", "suggestion", "confidence"],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "file": {
+            "type": "string",
+            "description": "Repository-relative path."
+          },
+          "line": {
+            "type": ["integer", "null"],
+            "description": "Line number in the new file, or null when it cannot be pinned down."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short imperative description of the defect."
+          },
+          "detail": {
+            "type": ["string", "null"],
+            "description": "Why it is a defect and what it affects."
+          },
+          "suggestion": {
+            "type": ["string", "null"],
+            "description": "Smallest concrete fix."
+          },
+          "confidence": {
+            "type": ["number", "null"],
+            "description": "0-1 probability that this is a real defect."
+          }
+        }
+      }
+    }
+  }
+}

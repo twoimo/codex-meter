@@ -1,0 +1,104 @@
+name: codex-meter
+description: Spend-aware Codex reviews for pull requests: policy gates, monthly budget enforcement, an audit ledger, and a spend report.
+author: Yeonwoo Choi
+branding:
+  icon: activity
+  color: purple
+
+inputs:
+  mode:
+    description: 'review, explain, or report'
+    required: false
+    default: review
+  api-key:
+    description: 'OpenAI API key used for the Codex run. Store it as a repository secret and pass secrets.OPENAI_API_KEY.'
+    required: false
+  codex-version:
+    description: 'Version of @openai/codex to install'
+    required: false
+    default: latest
+  base:
+    description: 'Base ref to diff against. Defaults to the pull request base branch.'
+    required: false
+  model:
+    description: 'Codex model to use. Leave empty for the CLI default.'
+    required: false
+  budget-tokens:
+    description: 'Monthly token budget. Reaching it stops further reviews until the next month.'
+    required: false
+  budget-usd:
+    description: 'Monthly dollar budget. Requires a pricing entry for the model in use.'
+    required: false
+  max-diff-lines:
+    description: 'Skip reviews whose diff exceeds this many changed lines.'
+    required: false
+  state:
+    description: 'file or branch. Use branch so the monthly budget survives across runs.'
+    required: false
+    default: branch
+  comment:
+    description: 'upsert or off'
+    required: false
+    default: upsert
+  fail-on:
+    description: 'critical, high, medium, low, info, or never'
+    required: false
+    default: high
+  allow-fork-prs:
+    description: 'Run on pull requests from forks. Off by default: forks cannot read your secrets and untrusted code must not spend your key.'
+    required: false
+    default: 'false'
+  extra-args:
+    description: 'Additional arguments passed to codex-meter review.'
+    required: false
+
+outputs:
+  decision:
+    description: 'Run or skip decision code'
+    value: ${{ steps.meter.outputs.decision }}
+  spend-tokens:
+    description: 'Tokens recorded for this run'
+    value: ${{ steps.meter.outputs.spend-tokens }}
+  spend-usd:
+    description: 'Estimated spend for this run'
+    value: ${{ steps.meter.outputs.spend-usd }}
+  findings:
+    description: 'Number of findings, all severities'
+    value: ${{ steps.meter.outputs.findings }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Codex CLI
+      shell: bash
+      env:
+        CODEX_VERSION: ${{ inputs.codex-version }}
+      run: npm install --global "@openai/codex@${CODEX_VERSION}"
+
+    - name: Run codex-meter
+      id: meter
+      shell: bash
+      # The key is passed to this single step only. codex-meter logs in with it
+      # inside a throwaway CODEX_HOME and then removes it from the Codex process
+      # environment, so commands Codex runs cannot read it.
+      env:
+        CODEX_API_KEY: ${{ inputs.api-key }}
+      run: |
+        set -o pipefail
+        args=("${{ inputs.mode }}")
+        [ -n "${{ inputs.base }}" ] && args+=(--base "${{ inputs.base }}")
+        [ -n "${{ inputs.model }}" ] && args+=(--model "${{ inputs.model }}")
+        [ -n "${{ inputs.budget-tokens }}" ] && args+=(--budget-tokens "${{ inputs.budget-tokens }}")
+        [ -n "${{ inputs.budget-usd }}" ] && args+=(--budget-usd "${{ inputs.budget-usd }}")
+        [ -n "${{ inputs.max-diff-lines }}" ] && args+=(--max-changed-lines "${{ inputs.max-diff-lines }}")
+        [ -n "${{ inputs.state }}" ] && args+=(--state "${{ inputs.state }}")
+        [ -n "${{ inputs.comment }}" ] && args+=(--comment "${{ inputs.comment }}")
+        [ -n "${{ inputs.fail-on }}" ] && args+=(--fail-on "${{ inputs.fail-on }}")
+        [ "${{ inputs.allow-fork-prs }}" = "true" ] && args+=(--allow-fork-prs)
+        [ -n "${{ inputs.extra-args }}" ] && args+=(${{ inputs.extra-args }})
+        node "${{ github.action_path }}/dist/src/cli.js" "${args[@]}"
