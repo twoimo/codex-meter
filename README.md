@@ -77,9 +77,9 @@ jobs:
 ## Quick start (CLI)
 
 ```bash
-npx codex-meter explain --base origin/main    # decide, never spend
-npx codex-meter review  --base origin/main    # review, meter, comment
-npx codex-meter report  --month 2026-09       # where the month went
+npx @twoimo/codex-meter explain --base origin/main    # decide, never spend
+npx @twoimo/codex-meter review  --base origin/main    # review, meter, comment
+npx @twoimo/codex-meter report  --month 2026-09       # where the month went
 ```
 
 From a checkout instead of npm:

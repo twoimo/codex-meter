@@ -43,9 +43,9 @@ jobs:
 ## 빠른 시작 (CLI)
 
 ```bash
-npx codex-meter explain --base origin/main    # 판단만, 지출 없음
-npx codex-meter review  --base origin/main    # 리뷰 + 계측 + 코멘트
-npx codex-meter report  --month 2026-09       # 월 지출 요약
+npx @twoimo/codex-meter explain --base origin/main    # 판단만, 지출 없음
+npx @twoimo/codex-meter review  --base origin/main    # 리뷰 + 계측 + 코멘트
+npx @twoimo/codex-meter report  --month 2026-09       # 월 지출 요약
 ```
 
 `explain`은 Codex를 호출하지 않고 결정·사유·예상 토큰·남은 예산만 출력하므로 정책을 조정할 때 안전하다.
