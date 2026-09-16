@@ -103,9 +103,11 @@ test('automation accounts are recognised and skipped without spending', () => {
   assert.equal(isBotAuthor('renovate[bot]'), true);
   assert.equal(isBotAuthor('github-actions[bot]'), true);
   assert.equal(isBotAuthor('renovate'), true);
-  assert.equal(isBotAuthor('some-bot'), true);
-  assert.equal(isBotAuthor('robot-fan'), false);
+  assert.equal(isBotAuthor('app/dependabot'), true);
+  assert.equal(isBotAuthor('Robot-Fan'), false);
+  assert.equal(isBotAuthor('some-bot'), false, 'human handles can end in -bot');
   assert.equal(isBotAuthor('twoimo'), false);
+  assert.equal(isBotAuthor('app/'), false);
   assert.equal(isBotAuthor(null), false);
 
   const skipped = decide(
@@ -170,4 +172,39 @@ test('approximate price matches are reported as a note', () => {
   assert.equal(outcome.decision.run, true);
   assert.equal(outcome.estimate.priceApproximate, true);
   assert.ok(outcome.decision.notes.some((note) => note.includes('gpt-5.4')));
+});
+
+test('metadata gates keep their documented precedence', () => {
+  const stacking = {
+    number: 3,
+    title: null,
+    draft: true,
+    author: 'dependabot[bot]',
+    labels: ['skip-codex-meter'],
+    isFork: true,
+  };
+
+  assert.equal(decide(input({ pull: stacking })).decision.code, 'draft');
+  assert.equal(decide(input({ pull: { ...stacking, draft: false } })).decision.code, 'bot-author');
+  assert.equal(
+    decide(input({ pull: { ...stacking, draft: false, author: 'human' } })).decision.code,
+    'label-skip',
+  );
+  assert.equal(
+    decide(input({ pull: { ...stacking, draft: false, author: 'human', labels: [] } })).decision.code,
+    'fork-pr',
+  );
+
+  const optOut = structuredClone(DEFAULT_CONFIG);
+  optOut.skipBotAuthors = false;
+  assert.equal(
+    decide(input({ config: optOut, pull: { ...stacking, draft: false } })).decision.code,
+    'label-skip',
+    'the label gate still wins once bot gating is disabled',
+  );
+  assert.equal(
+    decide(input({ config: optOut, pull: { ...stacking, draft: false, labels: [] } })).decision.code,
+    'fork-pr',
+    'the fork gate still wins once bot gating is disabled',
+  );
 });

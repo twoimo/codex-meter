@@ -33,8 +33,12 @@ const BOT_LOGINS = new Set([
     'copilot-swe-agent',
 ]);
 /**
- * GitHub marks apps with a `[bot]` suffix; the rest of the heuristics cover
- * accounts that only look like bots.
+ * Automation accounts are identified from GitHub's own convention (`[bot]`
+ * suffix, `app/<slug>` identities) plus a short list of known accounts.
+ *
+ * A generic `-bot` suffix was removed on review: real people can own handles
+ * like `some-bot`, and silently skipping a human contribution is worse than
+ * reviewing one bot pull request.
  */
 export function isBotAuthor(author) {
     const name = (author ?? '').trim().toLowerCase();
@@ -42,7 +46,7 @@ export function isBotAuthor(author) {
         return false;
     if (name.endsWith('[bot]'))
         return true;
-    if (/[-_.]bot$/.test(name))
+    if (name.startsWith('app/') && name.length > 'app/'.length)
         return true;
     return BOT_LOGINS.has(name);
 }
