@@ -1,6 +1,6 @@
 {
   "name": "codex-meter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spend-aware Codex automation for open source maintainers: policy gates, budget enforcement, an audit ledger, and PR spend reports.",
   "type": "module",
   "license": "MIT",
