@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderReportMarkdown, renderReviewComment, renderSkipComment, sortFindings } from '../src/render.js';
+import { displayBase, renderReportMarkdown, renderReviewComment, renderSkipComment, sortFindings } from '../src/render.js';
 import { summarize } from '../src/ledger.js';
 const review = {
     summary: 'Adds a retry loop around the upload call.',
@@ -105,5 +105,10 @@ test('report renders spend, severities and skips', () => {
     assert.ok(markdown.includes('| high | 2 |'));
     assert.ok(markdown.includes('| #3 |'));
     assert.ok(markdown.includes('67%'));
+});
+test('the base ref is shown without the remote prefix', () => {
+    assert.equal(displayBase('origin/main'), 'main');
+    assert.equal(displayBase('main'), 'main');
+    assert.equal(displayBase('origin/release/1.x'), 'release/1.x');
 });
 //# sourceMappingURL=render.test.js.map

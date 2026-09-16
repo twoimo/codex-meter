@@ -53,6 +53,15 @@ export async function removeCodexHome(dir) {
         // best effort: a throwaway directory that cannot be removed is not fatal
     }
 }
+/**
+ * The CLI is chatty on stderr; these lines carry no diagnostic value and would
+ * otherwise push the real error out of the comment.
+ */
+const STDERR_NOISE = [
+    /^Reading additional input from stdin/i,
+    /^WARNING: proceeding, even though we could not create PATH aliases/i,
+    /failed to connect to websocket/i,
+];
 function numberFrom(source, ...keys) {
     for (const key of keys) {
         const value = source[key];
@@ -288,6 +297,12 @@ export async function runCodexReview(invocation) {
                     : review
                         ? 'none'
                         : 'unparsed-review';
+            const stderrTail = stderr
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0 && !STDERR_NOISE.some((pattern) => pattern.test(line)))
+                .slice(-5)
+                .join('\n');
             resolve({
                 exitCode: code,
                 durationMs: Date.now() - startedAt,
@@ -297,7 +312,7 @@ export async function runCodexReview(invocation) {
                 finalMessage,
                 errorKind,
                 failureReason: failureReason ?? (errorKind === 'timeout' ? `no result after ${invocation.timeoutMs}ms` : null),
-                stderrTail: stderr.trim().split('\n').slice(-5).join('\n'),
+                stderrTail,
             });
         });
         child.stdin.write(buildReviewPrompt(invocation.prompt, invocation.base, invocation.head));

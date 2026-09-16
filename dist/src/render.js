@@ -13,6 +13,9 @@ export function budgetText(spend) {
     }
     return parts.length > 0 ? parts.join(' · ') : 'no monthly budget configured';
 }
+export function displayBase(base) {
+    return base.replace(/^origin\//, '');
+}
 export function spendFooter(spend, meta) {
     const usage = spend.usage;
     const tokens = [
@@ -23,7 +26,7 @@ export function spendFooter(spend, meta) {
         .filter(Boolean)
         .join(' / ');
     const lines = [
-        `<sub>codex-meter ${meta.toolVersion} · head ${meta.shortSha} · base ${mdCell(meta.base)}${meta.durationMs !== null ? ` · ${Math.round(meta.durationMs / 1000)}s` : ''}</sub>`,
+        `<sub>codex-meter ${meta.toolVersion} · head ${meta.shortSha} · base ${mdCell(displayBase(meta.base))}${meta.durationMs !== null ? ` · ${Math.round(meta.durationMs / 1000)}s` : ''}</sub>`,
         `<sub>Spend: ${tokens}${usage.reasoningOutputTokens > 0 ? ` (reasoning ${formatTokens(usage.reasoningOutputTokens)})` : ''} · estimated ${formatUsd(spend.costUsd)}${spend.model ? ` · model ${mdCell(spend.model)}` : ''}</sub>`,
         `<sub>Budget: ${budgetText(spend)}</sub>`,
     ];
