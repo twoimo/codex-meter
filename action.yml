@@ -1,5 +1,5 @@
 name: codex-meter
-description: Spend-aware Codex reviews for pull requests: policy gates, monthly budget enforcement, an audit ledger, and a spend report.
+description: "Spend-aware Codex reviews for pull requests: policy gates, monthly budget enforcement, an audit ledger, and a spend report."
 author: Yeonwoo Choi
 branding:
   icon: activity
