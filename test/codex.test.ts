@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accumulateUsage, buildReviewPrompt, normalizeReview, normaliseFilePath, parseJsonl } from '../src/codex.js';
+import { accumulateUsage, buildReviewPrompt, normalizeReview, normaliseFilePath, parseJsonl, providerArgs } from '../src/codex.js';
 
 /** Captured from `codex exec --json --ephemeral -s read-only` (codex-cli 0.153.4). */
 const CAPTURED = [
@@ -102,4 +102,32 @@ test('absolute finding paths are normalised to repository-relative ones', () => 
     '/repo',
   );
   assert.equal(review?.findings[0]?.file, 'src/a.ts');
+});
+
+test('a custom provider becomes explicit CLI overrides', () => {
+  const args = providerArgs(
+    {
+      name: 'gateway',
+      baseUrl: 'https://gateway.example/v1',
+      envKey: 'GATEWAY_KEY',
+      wireApi: 'responses',
+      model: null,
+    },
+    'fallback-model',
+  );
+  const joined = args.join(' ');
+  assert.ok(joined.includes('model_provider="gateway"'));
+  assert.ok(joined.includes('model_providers.gateway.base_url="https://gateway.example/v1"'));
+  assert.ok(joined.includes('model_providers.gateway.env_key="GATEWAY_KEY"'));
+  assert.ok(joined.includes('model_providers.gateway.wire_api="responses"'));
+  assert.ok(joined.includes('model="fallback-model"'), 'falls back to the configured model');
+});
+
+test('the provider model wins over the generic model setting', () => {
+  const args = providerArgs(
+    { name: 'g', baseUrl: 'https://g/v1', envKey: 'G_KEY', wireApi: 'responses', model: 'provider-model' },
+    'generic-model',
+  );
+  assert.ok(args.join(' ').includes('model="provider-model"'));
+  assert.ok(!args.join(' ').includes('generic-model'));
 });

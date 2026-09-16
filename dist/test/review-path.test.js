@@ -102,4 +102,38 @@ test('the monthly budget stops reviews once it is spent', async () => {
     assert.equal(payload.decision.code, 'budget-exhausted');
     assert.equal(payload.result, undefined);
 });
+test('a custom provider reaches the Codex CLI and satisfies the credential gate', async () => {
+    const dir = await fixtureRepo([['src/upload.ts', 'export const uploader = 6;\n']]);
+    const stub = await installCodexStub();
+    const argsOut = path.join(dir, 'stub-args.json');
+    const envOut = path.join(dir, 'stub-env.txt');
+    await writeFile(path.join(dir, '.codex-meter.json'), JSON.stringify({
+        provider: {
+            name: 'gateway',
+            baseUrl: 'https://gateway.example/v1',
+            envKey: 'GATEWAY_KEY',
+            model: 'provider-model',
+        },
+    }), 'utf8');
+    const result = await runCli(['review', '--cwd', dir, '--base', 'main', '--codex-bin', stub, '--fail-on', 'never', '--json'], dir, {
+        CODEX_API_KEY: '',
+        OPENAI_API_KEY: '',
+        GATEWAY_KEY: 'provider-test-key',
+        STUB_ARGS_OUT: argsOut,
+        STUB_ENV_NAME: 'GATEWAY_KEY',
+        STUB_ENV_OUT: envOut,
+    });
+    assert.equal(result.code, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.result.errorKind, 'none');
+    assert.equal(payload.result.findings.critical, 1);
+    const args = JSON.parse(await readFile(argsOut, 'utf8'));
+    const joined = args.join(' ');
+    assert.ok(joined.includes('model_provider="gateway"'), 'the provider is selected');
+    assert.ok(joined.includes('base_url="https://gateway.example/v1"'));
+    assert.ok(joined.includes('wire_api="responses"'));
+    assert.ok(joined.includes('model="provider-model"'));
+    assert.equal((await readFile(envOut, 'utf8')).trim(), 'present:GATEWAY_KEY');
+    assert.ok(result.stderr.includes('provider: gateway'), 'the provider mode is logged');
+});
 //# sourceMappingURL=review-path.test.js.map

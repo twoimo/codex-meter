@@ -59,6 +59,36 @@ test('estimate overrides are applied without losing the other fields', () => {
   assert.equal(config.estimate.tokensPerChangedLine, DEFAULT_CONFIG.estimate.tokensPerChangedLine);
 });
 
+test('a custom provider is parsed and defaults to the responses wire API', () => {
+  const { config, unknownKeys } = applyFileConfig(DEFAULT_CONFIG, {
+    provider: {
+      name: 'opencode-go',
+      baseUrl: 'https://opencode.ai/zen/go/v1',
+      envKey: 'OPENCODE_API_KEY',
+      model: 'deepseek-v4.1-flash',
+    },
+  });
+  assert.deepEqual(unknownKeys, []);
+  assert.equal(config.provider?.name, 'opencode-go');
+  assert.equal(config.provider?.wireApi, 'responses');
+  assert.equal(config.provider?.model, 'deepseek-v4.1-flash');
+});
+
+test('an incomplete or invalid provider block is reported, not half-applied', () => {
+  const missingEnv = applyFileConfig(DEFAULT_CONFIG, { provider: { name: 'x', baseUrl: 'https://x/v1' } });
+  assert.equal(missingEnv.config.provider, null);
+  assert.ok(missingEnv.unknownKeys.includes('provider'));
+
+  const badWire = applyFileConfig(DEFAULT_CONFIG, {
+    provider: { name: 'x', baseUrl: 'https://x/v1', envKey: 'X_KEY', wireApi: 'grpc' },
+  });
+  assert.equal(badWire.config.provider, null);
+  assert.ok(badWire.unknownKeys.includes('provider.wireApi'));
+
+  const cleared = applyFileConfig(DEFAULT_CONFIG, { provider: null });
+  assert.equal(cleared.config.provider, null);
+});
+
 test('the default configuration ships a usable monthly budget', () => {
   assert.equal(DEFAULT_CONFIG.budget.tokensPerMonth, 1_200_000);
   assert.equal(DEFAULT_CONFIG.allowForkPrs, false);

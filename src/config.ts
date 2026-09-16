@@ -32,6 +32,19 @@ export interface EstimateConfig {
   outputTokensPerChangedLine: number;
 }
 
+export interface ProviderConfig {
+  /** Provider id handed to the Codex CLI (`model_providers` key). */
+  name: string;
+  /** OpenAI-compatible base URL, for example https://opencode.ai/zen/go/v1 */
+  baseUrl: string;
+  /** Environment variable that holds the provider key. */
+  envKey: string;
+  /** Wire protocol the gateway speaks. Current Codex CLI versions reject "chat". */
+  wireApi: 'chat' | 'responses';
+  /** Model id to request; falls back to `model` when null. */
+  model: string | null;
+}
+
 export interface MeterConfig {
   enabled: boolean;
   skipLabel: string;
@@ -42,6 +55,8 @@ export interface MeterConfig {
   minChangedLines: number;
   maxChangedLines: number;
   model: string | null;
+  /** Non-OpenAI Codex provider (OpenAI-compatible gateway). */
+  provider: ProviderConfig | null;
   budget: BudgetConfig;
   state: StateConfig;
   comment: 'upsert' | 'off';
@@ -66,6 +81,7 @@ export const DEFAULT_CONFIG: MeterConfig = {
   minChangedLines: 0,
   maxChangedLines: 4000,
   model: null,
+  provider: null,
   budget: {
     // Roughly ten measured reviews a month (about 120k tokens each).
     tokensPerMonth: 1_200_000,
@@ -211,6 +227,29 @@ export function applyFileConfig(base: MeterConfig, raw: Json): { config: MeterCo
       case 'failOn': {
         if (value === 'never' || (typeof value === 'string' && ['critical', 'high', 'medium', 'low', 'info'].includes(value))) {
           config.failOn = value as MeterConfig['failOn'];
+        }
+        break;
+      }
+      case 'provider': {
+        if (value === null) {
+          config.provider = null;
+          break;
+        }
+        if (isObject(value)) {
+          const name = pickString(value, 'name');
+          const baseUrl = pickString(value, 'baseUrl');
+          const envKey = pickString(value, 'envKey');
+          const wireApi = pickString(value, 'wireApi') ?? 'responses';
+          const providerModel = pickString(value, 'model');
+          if (typeof name === 'string' && name.length > 0 && typeof baseUrl === 'string' && baseUrl.length > 0 && typeof envKey === 'string' && envKey.length > 0) {
+            if (wireApi === 'chat' || wireApi === 'responses') {
+              config.provider = { name, baseUrl, envKey, wireApi, model: providerModel ?? null };
+            } else {
+              unknownKeys.push('provider.wireApi');
+            }
+          } else {
+            unknownKeys.push('provider');
+          }
         }
         break;
       }

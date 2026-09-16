@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { createThrowawayCodexHome, hasStoredAuth, loginWithApiKey, removeCodexHome, resolveCodexHome, runCodexReview, } from './codex.js';
+import { createThrowawayCodexHome, hasStoredAuth, loginWithApiKey, providerCredentialPresent, removeCodexHome, resolveCodexHome, runCodexReview, } from './codex.js';
 import { loadConfig } from './config.js';
 import { defaultBase, diffStats, headSha, revParse } from './git.js';
 import { appendStepSummary, ContentsStore, fetchPull, githubEnvFromProcess, pullFromEvent, repoContextFromEnv, setOutput, upsertComment, } from './github.js';
@@ -172,7 +172,8 @@ async function commandReview(options) {
     const alreadyReviewed = wasReviewed(records, { repo: repoSlug, pr: pull?.number ?? explicitPr, sha: head });
     const apiKey = stringOption(options, 'apiKey') ?? process.env['CODEX_API_KEY'] ?? process.env['OPENAI_API_KEY'] ?? null;
     const existingHome = resolveCodexHome(null);
-    const hasCredential = Boolean(apiKey) || hasStoredAuth(existingHome);
+    const provider = config.provider;
+    const hasCredential = Boolean(apiKey) || hasStoredAuth(existingHome) || providerCredentialPresent(provider);
     const prMeta = pull
         ? {
             number: pull.number,
@@ -266,7 +267,10 @@ async function commandReview(options) {
     const prompt = await resolvePrompt(config.promptFile, cwd);
     let codexHome = existingHome;
     let throwaway = null;
-    if (apiKey) {
+    if (provider) {
+        log(`provider: ${provider.name} (${provider.baseUrl}) via ${provider.envKey}`);
+    }
+    else if (apiKey) {
         throwaway = await createThrowawayCodexHome();
         codexHome = throwaway;
         const login = await loginWithApiKey(config.codexBin, apiKey, codexHome);
@@ -288,6 +292,7 @@ async function commandReview(options) {
         head,
         prompt,
         model: outcome.model,
+        provider,
         codexArgs: config.codexArgs,
         timeoutMs: config.timeoutMs,
         ignoreUserConfig: config.ignoreUserConfig,
@@ -412,6 +417,7 @@ async function commandExplain(options) {
     const totals = monthTotals(records, { month, repo: repoSlug });
     const apiKey = stringOption(options, 'apiKey') ?? process.env['CODEX_API_KEY'] ?? process.env['OPENAI_API_KEY'] ?? null;
     const existingHome = resolveCodexHome(null);
+    const provider = config.provider;
     const outcome = decide({
         config,
         stats,
@@ -420,7 +426,7 @@ async function commandExplain(options) {
             ? { number: pull.number, title: pull.title, draft: pull.draft, author: pull.author, labels: pull.labels, isFork: pull.isFork }
             : null,
         alreadyReviewed: wasReviewed(records, { repo: repoSlug, pr: pull?.number ?? null, sha: head }),
-        hasCredential: Boolean(apiKey) || hasStoredAuth(existingHome),
+        hasCredential: Boolean(apiKey) || hasStoredAuth(existingHome) || providerCredentialPresent(provider),
         now: isoNow(),
     });
     const payload = {
@@ -447,7 +453,8 @@ async function commandExplain(options) {
         },
         config: { source, unknownKeys },
         ledger: store.describe(),
-        credential: Boolean(apiKey) ? 'api-key' : hasStoredAuth(existingHome) ? 'stored-auth' : 'none',
+        credential: Boolean(apiKey) ? 'api-key' : hasStoredAuth(existingHome) ? 'stored-auth' : providerCredentialPresent(provider) ? `provider:${provider?.name ?? 'unknown'}` : 'none',
+        provider: provider ? { name: provider.name, baseUrl: provider.baseUrl, envKey: provider.envKey, wireApi: provider.wireApi, model: provider.model } : null,
     };
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
     return 0;
