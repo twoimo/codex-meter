@@ -7,6 +7,7 @@ import {
   createThrowawayCodexHome,
   hasStoredAuth,
   loginWithApiKey,
+  providerCredentialPresent,
   removeCodexHome,
   resolveCodexHome,
   runCodexReview,
@@ -212,7 +213,8 @@ async function commandReview(options: CliOptions): Promise<number> {
 
   const apiKey = stringOption(options, 'apiKey') ?? process.env['CODEX_API_KEY'] ?? process.env['OPENAI_API_KEY'] ?? null;
   const existingHome = resolveCodexHome(null);
-  const hasCredential = Boolean(apiKey) || hasStoredAuth(existingHome);
+  const provider = config.provider;
+  const hasCredential = Boolean(apiKey) || hasStoredAuth(existingHome) || providerCredentialPresent(provider);
 
   const prMeta: PullRequestMeta | null = pull
     ? {
@@ -316,7 +318,9 @@ async function commandReview(options: CliOptions): Promise<number> {
   const prompt = await resolvePrompt(config.promptFile, cwd);
   let codexHome = existingHome;
   let throwaway: string | null = null;
-  if (apiKey) {
+  if (provider) {
+    log(`provider: ${provider.name} (${provider.baseUrl}) via ${provider.envKey}`);
+  } else if (apiKey) {
     throwaway = await createThrowawayCodexHome();
     codexHome = throwaway;
     const login = await loginWithApiKey(config.codexBin, apiKey, codexHome);
@@ -339,6 +343,7 @@ async function commandReview(options: CliOptions): Promise<number> {
     head,
     prompt,
     model: outcome.model,
+    provider,
     codexArgs: config.codexArgs,
     timeoutMs: config.timeoutMs,
     ignoreUserConfig: config.ignoreUserConfig,
@@ -479,6 +484,7 @@ async function commandExplain(options: CliOptions): Promise<number> {
   const totals = monthTotals(records, { month, repo: repoSlug });
   const apiKey = stringOption(options, 'apiKey') ?? process.env['CODEX_API_KEY'] ?? process.env['OPENAI_API_KEY'] ?? null;
   const existingHome = resolveCodexHome(null);
+  const provider = config.provider;
 
   const outcome = decide({
     config,
@@ -488,7 +494,7 @@ async function commandExplain(options: CliOptions): Promise<number> {
       ? { number: pull.number, title: pull.title, draft: pull.draft, author: pull.author, labels: pull.labels, isFork: pull.isFork }
       : null,
     alreadyReviewed: wasReviewed(records, { repo: repoSlug, pr: pull?.number ?? null, sha: head }),
-    hasCredential: Boolean(apiKey) || hasStoredAuth(existingHome),
+    hasCredential: Boolean(apiKey) || hasStoredAuth(existingHome) || providerCredentialPresent(provider),
     now: isoNow(),
   });
 
@@ -516,7 +522,8 @@ async function commandExplain(options: CliOptions): Promise<number> {
     },
     config: { source, unknownKeys },
     ledger: store.describe(),
-    credential: Boolean(apiKey) ? 'api-key' : hasStoredAuth(existingHome) ? 'stored-auth' : 'none',
+    credential: Boolean(apiKey) ? 'api-key' : hasStoredAuth(existingHome) ? 'stored-auth' : providerCredentialPresent(provider) ? `provider:${provider?.name ?? 'unknown'}` : 'none',
+    provider: provider ? { name: provider.name, baseUrl: provider.baseUrl, envKey: provider.envKey, wireApi: provider.wireApi, model: provider.model } : null,
   };
 
   process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);

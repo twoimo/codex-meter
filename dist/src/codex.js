@@ -62,6 +62,37 @@ const STDERR_NOISE = [
     /^WARNING: proceeding, even though we could not create PATH aliases/i,
     /failed to connect to websocket/i,
 ];
+function tomlString(value) {
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+/**
+ * Codex CLI config overrides for an OpenAI-compatible gateway. Passed with `-c`
+ * so they apply even when the user config is ignored (the default in CI).
+ */
+export function providerArgs(provider, model) {
+    const modelId = provider.model ?? model;
+    const args = [
+        '-c',
+        `model_provider=${tomlString(provider.name)}`,
+        '-c',
+        `model_providers.${provider.name}.name=${tomlString(provider.name)}`,
+        '-c',
+        `model_providers.${provider.name}.base_url=${tomlString(provider.baseUrl)}`,
+        '-c',
+        `model_providers.${provider.name}.env_key=${tomlString(provider.envKey)}`,
+        '-c',
+        `model_providers.${provider.name}.wire_api=${tomlString(provider.wireApi)}`,
+    ];
+    if (modelId)
+        args.push('-c', `model=${tomlString(modelId)}`);
+    return args;
+}
+export function providerCredentialPresent(provider) {
+    if (!provider)
+        return false;
+    const value = process.env[provider.envKey];
+    return typeof value === 'string' && value.trim().length > 0;
+}
 function numberFrom(source, ...keys) {
     for (const key of keys) {
         const value = source[key];
@@ -217,8 +248,12 @@ export async function runCodexReview(invocation) {
         invocation.outputFile,
     ];
     // The working root comes from the process cwd.
-    if (invocation.model)
+    if (invocation.provider) {
+        args.push(...providerArgs(invocation.provider, invocation.model));
+    }
+    else if (invocation.model) {
         args.push('-m', invocation.model);
+    }
     if (invocation.ignoreUserConfig)
         args.push('--ignore-user-config');
     args.push(...invocation.codexArgs);

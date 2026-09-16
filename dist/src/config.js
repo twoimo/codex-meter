@@ -10,6 +10,7 @@ export const DEFAULT_CONFIG = {
     minChangedLines: 0,
     maxChangedLines: 4000,
     model: null,
+    provider: null,
     budget: {
         // Roughly ten measured reviews a month (about 120k tokens each).
         tokensPerMonth: 1_200_000,
@@ -158,6 +159,31 @@ export function applyFileConfig(base, raw) {
             case 'failOn': {
                 if (value === 'never' || (typeof value === 'string' && ['critical', 'high', 'medium', 'low', 'info'].includes(value))) {
                     config.failOn = value;
+                }
+                break;
+            }
+            case 'provider': {
+                if (value === null) {
+                    config.provider = null;
+                    break;
+                }
+                if (isObject(value)) {
+                    const name = pickString(value, 'name');
+                    const baseUrl = pickString(value, 'baseUrl');
+                    const envKey = pickString(value, 'envKey');
+                    const wireApi = pickString(value, 'wireApi') ?? 'responses';
+                    const providerModel = pickString(value, 'model');
+                    if (typeof name === 'string' && name.length > 0 && typeof baseUrl === 'string' && baseUrl.length > 0 && typeof envKey === 'string' && envKey.length > 0) {
+                        if (wireApi === 'chat' || wireApi === 'responses') {
+                            config.provider = { name, baseUrl, envKey, wireApi, model: providerModel ?? null };
+                        }
+                        else {
+                            unknownKeys.push('provider.wireApi');
+                        }
+                    }
+                    else {
+                        unknownKeys.push('provider');
+                    }
                 }
                 break;
             }

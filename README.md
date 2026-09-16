@@ -149,6 +149,31 @@ Every option also has a CLI flag (`--budget-tokens`, `--fail-on`, `--state`, `--
 - Estimation before the run is a heuristic calibrated on measured runs (see [docs/cost-model.md](docs/cost-model.md)). The numbers that matter are the ones in the ledger, not the estimate.
 - Reaching a budget stops reviews until the next month and posts a comment explaining why, instead of failing the pull request.
 
+## Custom Codex providers
+
+Codex CLI can talk to an OpenAI-compatible gateway instead of OpenAI directly:
+
+```json
+{
+  "provider": {
+    "name": "gateway",
+    "baseUrl": "https://gateway.example/v1",
+    "envKey": "GATEWAY_KEY",
+    "wireApi": "responses",
+    "model": "my-codex-model"
+  }
+}
+```
+
+When `provider` is set, `codex-meter` skips the OpenAI login, passes the provider settings to the CLI as explicit `-c` overrides, and treats the provider's environment variable as the credential. Responses-compatible endpoints (self-hosted vLLM, LM Studio, Azure OpenAI, an internal proxy) work. Chat-completions-only gateways do not, because current Codex CLI versions reject `wire_api = "chat"`.
+
+Two consequences worth knowing:
+
+- Dollar budgets need a price entry for that model. Otherwise the ledger records tokens and marks dollar totals incomplete, which is the right behaviour for subscription-backed gateways that have no per-token price: budget in tokens.
+- The provider key is passed to the Codex process environment (unlike the OpenAI key, which is stored through `codex login` in a throwaway home). Anything Codex runs can read it, so scope the key to this use.
+
+Gateways that require their own client are not usable. OpenCode Go, for example, rejects requests without an `x-opencode-session` header (`MissingSessionID`), so it cannot back a Codex CLI run.
+
 ## Security model
 
 - The API key is stored once through `codex login --with-api-key` inside a **throwaway `CODEX_HOME`**, and removed from the environment of the Codex process. Commands Codex runs in your checkout therefore cannot read it. See [docs/security.md](docs/security.md).
@@ -167,13 +192,13 @@ Every option also has a CLI flag (`--budget-tokens`, `--fail-on`, `--state`, `--
 
 ## Status
 
-Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting are covered by 56 tests, CI runs on Node 20 and 22, and CI fails if the committed `dist/` drifts from a fresh build. The review path itself is verified against a recorded Codex session rather than a live call, so the suite stays free and reproducible. `ROADMAP` ideas live at the end of [docs/design.md](docs/design.md).
+Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting are covered by 65 tests, CI runs on Node 20 and 22, and CI fails if the committed `dist/` drifts from a fresh build. The review path itself is verified against a recorded Codex session rather than a live call, so the suite stays free and reproducible. `ROADMAP` ideas live at the end of [docs/design.md](docs/design.md).
 
 ## Development
 
 ```bash
 npm ci
-npm test          # build + 56 tests, including a recorded-session integration test
+npm test          # build + 65 tests, including a recorded-session integration test
 npm run explain   # decide on the current diff without spending
 ```
 

@@ -32,6 +32,12 @@ Agentic pull requests are rejected for reasons unrelated to code quality: review
 - Optimising the cost of a single call. It decides whether to call and reports what the call cost.
 - Being an agent framework. It is a thin, testable layer over the Codex CLI.
 
+## Custom providers and the wire protocol
+
+Codex CLI removed `wire_api = "chat"`. Custom `model_providers` entries must speak the Responses API, so a gateway that only exposes Chat Completions cannot back a review. `codex-meter` therefore defaults `provider.wireApi` to `responses`, and the README says plainly that chat-only gateways are out of scope instead of pretending the flag still works.
+
+Subscription gateways that route per client (OpenCode Go requires an `x-opencode-session` header) are not usable either: the CLI request is rejected before a review starts. Provider support exists for Responses-compatible endpoints you control or trust, and it is deliberately config-only, so nothing about it changes the OpenAI default path.
+
 ## Possible next steps
 
 - Inline review comments per finding, behind a flag, with the same upsert discipline.

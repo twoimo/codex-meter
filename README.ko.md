@@ -63,7 +63,7 @@ npx @twoimo/codex-meter report  --month 2026-09       # 월 지출 요약
 
 ```bash
 npm ci
-npm test          # 빌드 + 56개 테스트 (기록된 세션 리플레이 포함)
+npm test          # 빌드 + 65개 테스트 (기록된 세션 리플레이 포함)
 ```
 
 통합 테스트는 `test/fixtures/`의 캡처된 Codex 세션을 재생하므로 네트워크·자격증명·쿼터가 필요 없다.

@@ -19,6 +19,15 @@ if (process.env.STUB_PROMPT_OUT) {
   writeFileSync(process.env.STUB_PROMPT_OUT, prompt, 'utf8');
 }
 
+if (process.env.STUB_ARGS_OUT) {
+  writeFileSync(process.env.STUB_ARGS_OUT, JSON.stringify(args, null, 1), 'utf8');
+}
+
+if (process.env.STUB_ENV_NAME && process.env.STUB_ENV_OUT) {
+  const name = process.env.STUB_ENV_NAME;
+  writeFileSync(process.env.STUB_ENV_OUT, process.env[name] ? `present:${name}` : `missing:${name}`, 'utf8');
+}
+
 if (args[0] === 'login') {
   // Accept the API key on stdin exactly like the real CLI, but never record it.
   try {
