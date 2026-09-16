@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { breakDown, classifyPath, decide, estimateTokens } from '../src/policy.js';
+import { breakDown, classifyPath, decide, estimateTokens, isBotAuthor } from '../src/policy.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 function stats(entries) {
     const files = entries.map(([path, added, deleted]) => ({
@@ -76,6 +76,26 @@ test('minChangedLines can gate trivial changes', () => {
     const config = structuredClone(DEFAULT_CONFIG);
     config.minChangedLines = 10;
     assert.equal(decide(input({ config, stats: stats([['src/a.ts', 2, 0]]) })).decision.code, 'too-small');
+});
+test('automation accounts are recognised and skipped without spending', () => {
+    assert.equal(isBotAuthor('dependabot[bot]'), true);
+    assert.equal(isBotAuthor('renovate[bot]'), true);
+    assert.equal(isBotAuthor('github-actions[bot]'), true);
+    assert.equal(isBotAuthor('renovate'), true);
+    assert.equal(isBotAuthor('some-bot'), true);
+    assert.equal(isBotAuthor('robot-fan'), false);
+    assert.equal(isBotAuthor('twoimo'), false);
+    assert.equal(isBotAuthor(null), false);
+    const skipped = decide(input({ pull: { number: 9, title: null, draft: false, author: 'dependabot[bot]', labels: [], isFork: false } }));
+    assert.equal(skipped.decision.code, 'bot-author');
+    assert.equal(skipped.decision.run, false);
+    const optOut = structuredClone(DEFAULT_CONFIG);
+    optOut.skipBotAuthors = false;
+    const reviewed = decide(input({
+        config: optOut,
+        pull: { number: 9, title: null, draft: false, author: 'dependabot[bot]', labels: [], isFork: false },
+    }));
+    assert.equal(reviewed.decision.code, 'run');
 });
 test('an already metered head commit is not reviewed twice', () => {
     assert.equal(decide(input({ alreadyReviewed: true })).decision.code, 'already-reviewed');

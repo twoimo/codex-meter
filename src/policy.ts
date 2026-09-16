@@ -33,6 +33,28 @@ const TEST_PATTERNS = [
 
 export type FileKind = 'docs' | 'lock' | 'generated' | 'test' | 'ci' | 'source';
 
+/** Automation accounts whose pull requests rarely need a paid review. */
+const BOT_LOGINS = new Set([
+  'dependabot',
+  'renovate',
+  'greenkeeper',
+  'snyk-bot',
+  'github-actions',
+  'copilot-swe-agent',
+]);
+
+/**
+ * GitHub marks apps with a `[bot]` suffix; the rest of the heuristics cover
+ * accounts that only look like bots.
+ */
+export function isBotAuthor(author: string | null | undefined): boolean {
+  const name = (author ?? '').trim().toLowerCase();
+  if (name.length === 0) return false;
+  if (name.endsWith('[bot]')) return true;
+  if (/[-_.]bot$/.test(name)) return true;
+  return BOT_LOGINS.has(name);
+}
+
 export function classifyPath(filePath: string): FileKind {
   const normalized = filePath.replace(/\\/g, '/');
   if (LOCK_PATTERNS.some((pattern) => pattern.test(normalized))) return 'lock';
@@ -145,6 +167,10 @@ export function decide(input: PolicyInput): PolicyOutcome {
   if (!config.enabled) return finish(false, 'disabled', 'codex-meter is disabled by configuration.');
 
   if (pull?.draft) return finish(false, 'draft', 'Pull request is a draft.');
+
+  if (pull && config.skipBotAuthors && isBotAuthor(pull.author)) {
+    return finish(false, 'bot-author', `Pull request author "${pull.author}" looks like automation.`);
+  }
 
   if (pull && config.skipLabel && pull.labels.includes(config.skipLabel)) {
     return finish(false, 'label-skip', `Label "${config.skipLabel}" is present.`);

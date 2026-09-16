@@ -23,6 +23,11 @@ test('budget, state and model overrides are applied', () => {
     assert.equal(config.comment, 'off');
     assert.equal(config.failOn, 'critical');
 });
+test('bot author gating defaults on and can be disabled', () => {
+    assert.equal(DEFAULT_CONFIG.skipBotAuthors, true);
+    const { config } = applyFileConfig(DEFAULT_CONFIG, { skipBotAuthors: false });
+    assert.equal(config.skipBotAuthors, false);
+});
 test('invalid enum values are ignored', () => {
     const { config } = applyFileConfig(DEFAULT_CONFIG, { state: { mode: 'database' }, comment: 'spam', failOn: 'blocker' });
     assert.equal(config.state.mode, DEFAULT_CONFIG.state.mode);

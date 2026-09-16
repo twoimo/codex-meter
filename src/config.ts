@@ -35,6 +35,7 @@ export interface EstimateConfig {
 export interface MeterConfig {
   enabled: boolean;
   skipLabel: string;
+  skipBotAuthors: boolean;
   allowForkPrs: boolean;
   skipDocsOnly: boolean;
   skipGeneratedOnly: boolean;
@@ -58,6 +59,7 @@ export interface MeterConfig {
 export const DEFAULT_CONFIG: MeterConfig = {
   enabled: true,
   skipLabel: 'skip-codex-meter',
+  skipBotAuthors: true,
   allowForkPrs: false,
   skipDocsOnly: true,
   skipGeneratedOnly: true,
@@ -139,6 +141,11 @@ export function applyFileConfig(base: MeterConfig, raw: Json): { config: MeterCo
       case 'skipLabel': {
         const v = pickString(raw, key);
         if (typeof v === 'string') config.skipLabel = v;
+        break;
+      }
+      case 'skipBotAuthors': {
+        const v = pickBoolean(raw, key);
+        if (v !== undefined) config.skipBotAuthors = v;
         break;
       }
       case 'allowForkPrs': {
