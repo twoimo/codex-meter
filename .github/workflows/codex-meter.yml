@@ -38,6 +38,7 @@ jobs:
         uses: ./
         with:
           api-key: ${{ secrets.OPENAI_API_KEY }}
-          budget-tokens: '600000'
+          budget-tokens: '1200000'
+          run-tokens: '900000'
           state: file
           fail-on: never

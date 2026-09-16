@@ -46,7 +46,6 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.resolve(HERE, '..', '..', 'schemas', 'findings.schema.json');
 
 const SKIP_CODES_WORTH_COMMENTING = new Set(['budget-exhausted', 'too-large', 'fork-pr']);
-
 function log(message: string): void {
   process.stderr.write(`${message}\n`);
 }
@@ -260,6 +259,12 @@ async function commandReview(options: CliOptions): Promise<number> {
   log(`codex-meter ${TOOL_VERSION}: ${outcome.decision.code} — ${outcome.decision.detail}`);
   log(`diff: ${stats.fileCount} files, ${stats.changedLines} changed lines (base ${base})`);
   log(`ledger: ${store.describe()}`);
+  log(
+    `github: repo=${repoSlug ?? 'none'} pull=${pull?.number ?? explicitPr ?? 'none'} comment=${config.comment} token=${env.token ? 'present' : 'missing'}`,
+  );
+  if (config.comment === 'upsert' && (!ctx || !pull?.number)) {
+    log('warning: no GitHub context (token plus GITHUB_REPOSITORY, or a pull_request event), so no comment will be posted');
+  }
   for (const note of outcome.decision.notes) log(`note: ${note}`);
 
   if (!outcome.decision.run || config.dryRun) {
