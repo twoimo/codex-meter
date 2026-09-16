@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@v4
@@ -38,6 +39,7 @@ jobs:
       - name: Policy smoke test
         # Decisions are free: this exercises the CLI end to end without spending tokens.
         run: |
-          node dist/src/cli.js explain --base HEAD~1 --head HEAD --json > explain.json || true
-          node -e "const p=require('./explain.json'); if(!p.decision || !p.decision.code) { throw new Error('explain produced no decision'); } console.log('decision:', p.decision.code);" || true
+          node dist/src/cli.js explain --base HEAD~1 --head HEAD --json > explain.json
+          grep -q '"decision"' explain.json
+          grep -o '"code": "[a-z-]*"' explain.json | head -1
           cat explain.json
