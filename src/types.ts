@@ -63,6 +63,7 @@ export type DecisionCode =
   | 'run'
   | 'disabled'
   | 'draft'
+  | 'bot-author'
   | 'label-skip'
   | 'fork-pr'
   | 'no-changes'

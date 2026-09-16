@@ -23,6 +23,33 @@ const TEST_PATTERNS = [
     /\.(test|spec)\.[cm]?[jt]sx?$/i,
     /_test\.(go|py|rs|rb)$/i,
 ];
+/** Automation accounts whose pull requests rarely need a paid review. */
+const BOT_LOGINS = new Set([
+    'dependabot',
+    'renovate',
+    'greenkeeper',
+    'snyk-bot',
+    'github-actions',
+    'copilot-swe-agent',
+]);
+/**
+ * Automation accounts are identified from GitHub's own convention (`[bot]`
+ * suffix, `app/<slug>` identities) plus a short list of known accounts.
+ *
+ * A generic `-bot` suffix was removed on review: real people can own handles
+ * like `some-bot`, and silently skipping a human contribution is worse than
+ * reviewing one bot pull request.
+ */
+export function isBotAuthor(author) {
+    const name = (author ?? '').trim().toLowerCase();
+    if (name.length === 0)
+        return false;
+    if (name.endsWith('[bot]'))
+        return true;
+    if (name.startsWith('app/') && name.length > 'app/'.length)
+        return true;
+    return BOT_LOGINS.has(name);
+}
 export function classifyPath(filePath) {
     const normalized = filePath.replace(/\\/g, '/');
     if (LOCK_PATTERNS.some((pattern) => pattern.test(normalized)))
@@ -95,6 +122,9 @@ export function decide(input) {
         return finish(false, 'disabled', 'codex-meter is disabled by configuration.');
     if (pull?.draft)
         return finish(false, 'draft', 'Pull request is a draft.');
+    if (pull && config.skipBotAuthors && isBotAuthor(pull.author)) {
+        return finish(false, 'bot-author', `Pull request author "${pull.author}" looks like automation.`);
+    }
     if (pull && config.skipLabel && pull.labels.includes(config.skipLabel)) {
         return finish(false, 'label-skip', `Label "${config.skipLabel}" is present.`);
     }

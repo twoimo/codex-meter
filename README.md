@@ -100,6 +100,7 @@ Rules are evaluated cheapest-first and the first match wins, so every decision i
 | --- | --- |
 | `disabled` | `enabled: false` |
 | `draft` | the pull request is a draft |
+| `bot-author` | the author looks like automation (for example `dependabot[bot]`) |
 | `label-skip` | the skip label (default `skip-codex-meter`) is present |
 | `fork-pr` | the PR comes from a fork, so your secret is not readable by it |
 | `no-changes` | empty diff |
@@ -120,6 +121,7 @@ Drop a `.codex-meter.json` in the repository root (or `.github/codex-meter.json`
 {
   "enabled": true,
   "skipLabel": "skip-codex-meter",
+  "skipBotAuthors": true,
   "allowForkPrs": false,
   "skipDocsOnly": true,
   "skipGeneratedOnly": true,
@@ -173,7 +175,7 @@ Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting a
 
 ```bash
 npm ci
-npm test          # build + 56 tests, including a recorded-session integration test
+npm test          # build + 58 tests, including a recorded-session integration test
 npm run explain   # decide on the current diff without spending
 ```
 
