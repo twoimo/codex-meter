@@ -199,6 +199,8 @@ Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting a
 ```bash
 npm ci
 npm test          # build + 68 tests, including a recorded-session integration test
+
+Release notes live in [CHANGELOG.md](CHANGELOG.md).
 npm run explain   # decide on the current diff without spending
 ```
 

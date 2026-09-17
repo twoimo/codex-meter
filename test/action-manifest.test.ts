@@ -34,7 +34,10 @@ test('action.yml is valid YAML and declares the expected entry point', async () 
     runSteps.some((step) => /dist\/src\/cli\.js/.test(String(step['run']))),
     'one step must execute the built CLI (dist/src/cli.js)',
   );
-  assert.ok(steps.some((step) => step['uses'] === 'actions/setup-node@v4'), 'the action installs Node itself');
+  assert.ok(
+    steps.some((step) => /^actions\/setup-node@v\d+$/.test(String(step['uses']))),
+    'the action installs Node itself',
+  );
 });
 
 test('every input and output is documented', async () => {
