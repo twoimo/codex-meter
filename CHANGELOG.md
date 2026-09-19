@@ -2,6 +2,19 @@
 
 All notable changes to this project. Versions follow `major.minor.patch`, and the `v1` tag tracks the latest compatible release.
 
+## 0.1.3
+
+### Added
+
+- **Opt-in label gate (`requireLabel`).** When set, only pull requests carrying that label are reviewed; everything else is skipped as `label-missing` with an actionable reason and no comment. Off by default (`requireLabel: null`). The skip label still wins over the opt-in label. Placed after `label-skip` and before `fork-pr` in the documented order.
+
+### Changed
+
+- GitHub Action and CI now use `actions/checkout@v7` and `actions/setup-node@v7`.
+- The action-manifest test accepts any `actions/setup-node@vN` major version, so Dependabot bumps no longer fail a hardcoded pin.
+- Dev toolchain: TypeScript 7 and `@types/node` 26. The committed `dist/` was rebuilt to match.
+- Dependabot weekly grouped npm updates and monthly action updates, plus the release procedure in `AGENTS.md`.
+
 ## 0.1.2
 
 ### Added

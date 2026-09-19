@@ -60,7 +60,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -194,13 +194,13 @@ Gateways that require their own client are not usable. OpenCode Go, for example,
 
 ## Status
 
-Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting are covered by 68 tests, CI runs on Node 20 and 22, and CI fails if the committed `dist/` drifts from a fresh build. The review path itself is verified against a recorded Codex session rather than a live call, so the suite stays free and reproducible. `ROADMAP` ideas live at the end of [docs/design.md](docs/design.md).
+Pre-1.0, and honest about it: the policy engine, budgets, ledger and reporting are covered by 70 tests, CI runs on Node 20 and 22, and CI fails if the committed `dist/` drifts from a fresh build. The review path itself is verified against a recorded Codex session rather than a live call, so the suite stays free and reproducible. `ROADMAP` ideas live at the end of [docs/design.md](docs/design.md).
 
 ## Development
 
 ```bash
 npm ci
-npm test          # build + 68 tests, including a recorded-session integration test
+npm test          # build + 70 tests, including a recorded-session integration test
 
 Release notes live in [CHANGELOG.md](CHANGELOG.md).
 npm run explain   # decide on the current diff without spending
