@@ -4,6 +4,7 @@ import { DEFAULT_PRICING } from './pricing.js';
 export const DEFAULT_CONFIG = {
     enabled: true,
     skipLabel: 'skip-codex-meter',
+    requireLabel: null,
     skipBotAuthors: true,
     allowForkPrs: false,
     skipDocsOnly: true,
@@ -90,6 +91,12 @@ export function applyFileConfig(base, raw) {
                 const v = pickBoolean(raw, key);
                 if (v !== undefined)
                     config.skipBotAuthors = v;
+                break;
+            }
+            case 'requireLabel': {
+                const v = pickString(raw, key);
+                if (v !== undefined)
+                    config.requireLabel = v;
                 break;
             }
             case 'allowForkPrs': {

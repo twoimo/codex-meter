@@ -180,6 +180,14 @@ export function decide(input: PolicyInput): PolicyOutcome {
     return finish(false, 'label-skip', `Label "${config.skipLabel}" is present.`);
   }
 
+  if (pull && config.requireLabel && !pull.labels.includes(config.requireLabel)) {
+    return finish(
+      false,
+      'label-missing',
+      `Opt-in mode: label "${config.requireLabel}" is required before a review is paid for.`,
+    );
+  }
+
   if (pull?.isFork && !config.allowForkPrs) {
     return finish(
       false,

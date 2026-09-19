@@ -101,6 +101,7 @@ Rules are evaluated cheapest-first and the first match wins, so every decision i
 | `disabled` | `enabled: false` |
 | `draft` | the pull request is a draft |
 | `label-skip` | the skip label (default `skip-codex-meter`) is present |
+| `label-missing` | opt-in mode is on (`requireLabel`) and the label is absent |
 | `fork-pr` | the PR comes from a fork, so your secret is not readable by it |
 | `no-changes` | empty diff |
 | `docs-only` | only documentation changed |
@@ -120,6 +121,7 @@ Drop a `.codex-meter.json` in the repository root (or `.github/codex-meter.json`
 {
   "enabled": true,
   "skipLabel": "skip-codex-meter",
+  "requireLabel": null,
   "allowForkPrs": false,
   "skipDocsOnly": true,
   "skipGeneratedOnly": true,

@@ -65,6 +65,7 @@ export type DecisionCode =
   | 'draft'
   | 'bot-author'
   | 'label-skip'
+  | 'label-missing'
   | 'fork-pr'
   | 'no-changes'
   | 'docs-only'
